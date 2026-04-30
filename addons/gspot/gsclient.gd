@@ -9,16 +9,14 @@ extends Node
 ## @tutorial(Spec Reference): https://buttplug-spec.docs.buttplug.io/docs/spec
 
 ## The spec version this client is compatible with.
-const MESSAGE_VERSION: int = 3
+const PROTOCOL_VERSION_MAJOR: int = 4
+const PROTOCOL_VERSION_MINOR: int = 0
 ## The default server host to connect to.
 const DEFAULT_HOST: String = "127.0.0.1"
 ## The default server port to connect to.
 const DEFAULT_PORT: int = 12345
 ## The default ping time.
 const DEFAULT_PING_TIME: int = 1000 * 30 # 30 seconds
-## A disclaimer that is displayed if any of the raw commands are used without first doing an opt-in 
-## through the project settings.
-const RAW_DISCLAIMER: String = "Raw commands are potentially dangerous and must be manually enabled."
 ## The subdirectory where extensions are loaded from.
 const EXTENSIONS_DIR: String = "extensions"
 
@@ -65,8 +63,6 @@ signal client_error(error: int, message: String)
 signal client_frame_received(frame: String)
 ## Emitted when the client sends a message.
 signal client_message(message: String)
-## Emitted when a value has returned from [method raw_read].
-signal client_raw_reading(id: int, device_index: int, endpoint: String, data: PackedByteArray)
 ## Emitted when a device scan has finished and [method get_devices] can be called.
 signal client_scan_finished()
 ## Emitted when a value has returned from [method read_sensor].
@@ -85,7 +81,8 @@ var extensions_dir: String = EXTENSIONS_DIR
 var _hostname: String = DEFAULT_HOST
 var _port: int = 12345
 var _server_name: String
-var _message_version: int
+var _protocol_version_major: int
+var _protocol_version_minor: int
 var _max_ping_time: int
 var _ack_map: Dictionary = {}
 var _device_map: Dictionary = {}
@@ -100,17 +97,13 @@ var _durations: Dictionary = {}
 var _log_level: LogLevel = LogLevel.VERBOSE
 var _extension_map: Dictionary = {}
 
-
 func _init() -> void:
 	add_message_handler(GSMessage.MESSAGE_TYPE_OK, _on_message_ok)
 	add_message_handler(GSMessage.MESSAGE_TYPE_ERROR, _on_message_error)
 	add_message_handler(GSMessage.MESSAGE_TYPE_SERVER_INFO, _on_message_server_info)
 	add_message_handler(GSMessage.MESSAGE_TYPE_DEVICE_LIST, _on_message_device_list)
-	add_message_handler(GSMessage.MESSAGE_TYPE_DEVICE_ADDED, _on_message_device_added)
-	add_message_handler(GSMessage.MESSAGE_TYPE_DEVICE_REMOVED, _on_message_device_removed)
 	add_message_handler(GSMessage.MESSAGE_TYPE_SCANNING_FINISHED, _on_message_scanning_finished)
-	add_message_handler(GSMessage.MESSAGE_TYPE_SENSOR_READING, _on_message_sensor_reading)
-	add_message_handler(GSMessage.MESSAGE_TYPE_RAW_READING, _on_message_raw_reading)
+	add_message_handler(GSMessage.MESSAGE_TYPE_INPUT_READING, _on_message_sensor_reading)
 
 
 func _enter_tree() -> void:
@@ -143,12 +136,6 @@ func get_client_version() -> String:
 func get_client_string() -> String:
 	return "%s v%s" % [ get_client_name(), get_client_version() ]
 
-
-## Determines if raw commands have been opted into.
-func is_raw_command_enabled() -> bool:
-	return GSUtil.get_project_value(GSConstants.PROJECT_SETTING_ENABLE_RAW_COMMANDS, false)
-
-
 ## Returns the connected hostname.
 func get_hostname() -> String:
 	return _hostname
@@ -164,9 +151,13 @@ func get_server_name() -> String:
 	return _server_name
 
 
-## Returns the connected server's message version.
-func get_message_version() -> int:
-	return _message_version
+## Returns the connected server's protocol major version.
+func get_protocol_version_major() -> int:
+	return _protocol_version_major
+	
+## Returns the connected server's protocol minor version.
+func get_protocol_version_minor() -> int:
+	return _protocol_version_minor
 
 
 ## Returns the connected server's max ping time.
@@ -317,30 +308,31 @@ func get_device_by_name(device_name: String) -> GSDevice:
 ## If the feature is a LinearCmd this method can be awaited on.
 func send_feature(
 	feature: GSFeature, 
+	command: String,
 	value: float, 
 	duration: float = 0.0, 
-	clockwise: bool = true
+	clockwise: bool = true,
 ) -> void:
 	if not feature or not feature.device:
 		return
-	match feature.feature_command:
-		GSMessage.MESSAGE_TYPE_SCALAR_CMD:
+	var range: GSRange = feature.outputs[command].value_range
+	var int_value: int = (range.range_max - range.range_min) * value + range.range_min
+	match command:
+		GSOutputType.ROTATION_WITH_DIRECTION:
+			send_rotate(feature.device.device_index, feature.feature_index, clockwise, int_value)
+			if duration > 0.0:
+				_create_feature_duration(feature, duration)
+		GSOutputType.HW_POSITION_WITH_DURATION:
+			await send_linear(feature.device.device_index, feature.feature_index, duration, int_value)
+		_:
 			send_scalar(
 				feature.device.device_index, 
 				feature.feature_index, 
-				feature.actuator_type, 
-				value
+				command, 
+				int_value
 			)
-			
 			if duration > 0.0:
 				_create_feature_duration(feature, duration)
-		GSMessage.MESSAGE_TYPE_ROTATE_CMD:
-			send_rotate(feature.device.device_index, feature.feature_index, clockwise, value)
-			if duration > 0.0:
-				_create_feature_duration(feature, duration)
-		GSMessage.MESSAGE_TYPE_LINEAR_CMD:
-			await send_linear(feature.device.device_index, feature.feature_index, duration, value)
-
 
 ## Sends a scalar command to the server.
 ## [br][br]
@@ -348,21 +340,16 @@ func send_feature(
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
-## [param actuator_type] is the actuator type of the feature.
+## [param command_type] is the output type of the feature.
 ## [br]
-## [param value] is a value between [code]0.0[/code] and [code]1.0[/code] where [code]0.0[/code] 
-## is no activation and [code]1.0[/code] is max activation.
+## [param value] is a value between the minimum and maximum values (inclusive) of the targeted output.
 func send_scalar(
 	device_index: int, 
 	feature_index: int, 
-	actuator_type: String, 
-	value: float
+	output_type: String, 
+	value: int
 ) -> void:
-	var scalar := GSScalar.new()
-	scalar.index = feature_index
-	scalar.actuator_type = actuator_type
-	scalar.scalar = value
-	send(GSScalarCmd.new(_get_message_id(), device_index, [ scalar ]))
+	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, output_type, value))
 
 
 ## Sends a linear command to the server.
@@ -374,14 +361,9 @@ func send_scalar(
 ## [param duration] sets the duration, in seconds, that it should take for the device to reach the 
 ## specified [param position].
 ## [br]
-## [param position] is a value between [code]0.0[/code] and [code]1.0[/code] where [code]0.0[/code] 
-## is the lowest position the device can reach and [code]1.0[/code] is the highest position.
-func send_linear(device_index: int, feature_index: int, duration: int, position: float) -> void:
-	var vector := GSVector.new()
-	vector.index = feature_index
-	vector.duration = duration
-	vector.position = position
-	send(GSLinearCmd.new(_get_message_id(), device_index, [ vector ]))
+## [param position] is a value between the minimum and maximum values of the feature output.
+func send_linear(device_index: int, feature_index: int, duration: int, position: int) -> void:
+	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, GSOutputType.HW_POSITION_WITH_DURATION, position, {"Duration": duration}))
 	await create_tween().tween_interval(float(duration) / 1000.0).finished
 
 
@@ -393,17 +375,12 @@ func send_linear(device_index: int, feature_index: int, duration: int, position:
 ## [br]
 ## [param clockwise] sets the direction of rotation.
 ## [br]
-## [param speed] is a value between [code]0.0[/code] and [code]1.0[/code] where [code]0.0[/code] 
-## is no movement and [code]1.0[/code] is max speed.
-func send_rotate(device_index: int, feature_index: int, clockwise: bool, speed: float) -> void:
-	var rotation := GSRotation.new()
-	rotation.index = feature_index
-	rotation.clockwise = clockwise
-	rotation.speed = speed
-	send(GSRotateCmd.new(_get_message_id(), device_index, [ rotation ]))
+## [param speed] is a value between the minimum and maximum values of the output
+func send_rotate(device_index: int, feature_index: int, clockwise: bool, speed: int) -> void:
+	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, GSOutputType.ROTATION_WITH_DIRECTION, speed, {"Clockwise": clockwise}))
 
 
-## Begins a sensor read of the specified device sensor. The read value will be returned via 
+## Begins an input read of the specified device feature. The read value will be returned via 
 ## [signal client_sensor_reading]. 
 ## [br][br]
 ## This function returns the message ID that was sent to the server requesting the sensor value. 
@@ -411,66 +388,53 @@ func send_rotate(device_index: int, feature_index: int, clockwise: bool, speed: 
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
-## [param sensor_index] is the sensor index on the device.
+## [param feature_index] is the feature index on the device.
 ## [br]
-## [param sensor_type] is the sensor type to read.
-func read_sensor(device_index: int, sensor_index: int, sensor_type: String) -> int:
+## [param input_type] is the input type to read.
+func read_sensor(device_index: int, feature_index: int, input_type: String) -> int:
 	var id = _get_message_id()
-	send(GSSensorReadCmd.new(id, device_index, sensor_index, sensor_type))
+	send(GSInputCmd.new(id, device_index, feature_index, input_type, "Read"))
 	return id
 
 
-## Subscribes to a stream of data from the specified device sensor. The read values will be 
+## Subscribes to a stream of data from the specified device input. The read values will be 
 ## returned via [signal client_sensor_reading]. 
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
-## [param sensor_index] is the sensor index on the device.
+## [param input_index] is the input index on the device.
 ## [br]
-## [param sensor_type] is the sensor type to read.
-func send_sensor_subscribe(device_index: int, sensor_index: int, sensor_type: String) -> void:
-	send(GSSensorSubscribeCmd.new(_get_message_id(), device_index, sensor_index, sensor_type))
+## [param input_type] is the input type to read.
+func send_sensor_subscribe(device_index: int, feature_index: int, input_type: String) -> void:
+	send(GSInputCmd.new(_get_message_id(), device_index, feature_index, input_type, "Subscribe"))
 
 
-## Unsubscribes from a stream of data from the specified device sensor.
+## Unsubscribes from a stream of data from the specified device input.
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
-## [param sensor_index] is the sensor index on the device.
+## [param feature_index] is the feature index on the device.
 ## [br]
-## [param sensor_type] is the sensor type to read.
-func send_sensor_unsubscribe(device_index: int, sensor_index: int, sensor_type: String) -> void:
-	send(GSSensorUnsubscribeCmd.new(_get_message_id(), device_index, sensor_index, sensor_type))
+## [param input_type] is the input type to read.
+func send_sensor_unsubscribe(device_index: int, feature_index: int, input_type: String) -> void:
+	send(GSInputCmd.new(_get_message_id(), device_index, feature_index, input_type, "Unsubscribe"))
 
 
 ## Stops the specified device feature.
 func stop_feature(feature: GSFeature) -> void:
 	if not feature or not feature.device:
 		return
-	match feature.feature_command:
-		GSMessage.MESSAGE_TYPE_SCALAR_CMD:
-			send_scalar(
-				feature.device.device_index, 
-				feature.feature_index, 
-				feature.actuator_type, 
-				0.0
-			)
-		GSMessage.MESSAGE_TYPE_ROTATE_CMD:
-			send_rotate(feature.device.device_index, feature.feature_index, true, 0.0)
-		GSMessage.MESSAGE_TYPE_LINEAR_CMD:
-			# Linear features move into a position over a duration and stop. Sending a stop for 
-			# these is not needed.
-			pass
+	send(GSStopCmd.new(_get_message_id(), feature.device.device_index, feature.feature_index))
 
 
 ## Stops all features of the specified device index.
 func stop_device(device_index: int) -> void:
-	send(GSStopDevice.new(_get_message_id(), device_index))
+	send(GSStopCmd.new(_get_message_id(), device_index))
 
 
 ## Stops all active devices.
 func stop_all_devices() -> void:
-	send(GSStopAllDevices.new(_get_message_id()))
+	send(GSStopCmd.new(_get_message_id()))
 
 
 ## Sends the specified message to the server.
@@ -527,41 +491,6 @@ func unload_extensions() -> void:
 	for i in range(extensions.size() - 1, -1, -1):
 		logv("Unloading extension %s..." % extensions[i].get_extension_name())
 		extensions[i].unload_extension(self)
-
-
-## Raw command write. Must be opted into via the project settings.
-func raw_write(
-	device_index: int, 
-	endpoint: String, 
-	data: PackedByteArray, 
-	write_with_response: bool
-) -> void:
-	assert(is_raw_command_enabled(), RAW_DISCLAIMER)
-	send(GSRawWriteCmd.new(_get_message_id(), device_index, endpoint, data, write_with_response))
-
-
-## Raw command read. Must be opted into via the project settings.
-func raw_read(
-	device_index: int, 
-	endpoint: String, 
-	expected_length: int, 
-	wait_for_data: bool
-) -> void:
-	assert(is_raw_command_enabled(), RAW_DISCLAIMER)
-	send(GSRawReadCmd.new(_get_message_id(), device_index, endpoint, expected_length, wait_for_data))
-
-
-## Raw command subscribe. Must be opted into via the project settings.
-func raw_subscribe(device_index: int, endpoint: String) -> void:
-	assert(is_raw_command_enabled(), RAW_DISCLAIMER)
-	send(GSRawSubscribeCmd.new(_get_message_id(), device_index, endpoint))
-
-
-## Raw command unsubscribe. Must be opted into via the project settings.
-func raw_unsubscribe(device_index: int, endpoint: String) -> void:
-	assert(is_raw_command_enabled(), RAW_DISCLAIMER)
-	send(GSRawUnsubscribeCmd.new(_get_message_id(), device_index, endpoint))
-
 
 func _log(level: LogLevel, message: String) -> void:
 	if level >= _log_level:
@@ -650,7 +579,8 @@ func _on_message_server_info(message: GSMessage) -> void:
 		_ack(1)
 		_state = ClientState.CONNECTED
 		_server_name = message.fields[GSMessage.MESSAGE_FIELD_SERVER_NAME]
-		_message_version = int(message.fields[GSMessage.MESSAGE_FIELD_MESSAGE_VERSION])
+		_protocol_version_major = int(message.fields[GSMessage.MESSAGE_FIELD_PROTOCOL_VERSION_MAJOR])
+		_protocol_version_minor = int(message.fields[GSMessage.MESSAGE_FIELD_PROTOCOL_VERSION_MINOR])
 		_max_ping_time = int(message.fields[GSMessage.MESSAGE_FIELD_MAX_PING_TIME])
 		if _max_ping_time <= 0:
 			_max_ping_time = DEFAULT_PING_TIME
@@ -660,27 +590,12 @@ func _on_message_server_info(message: GSMessage) -> void:
 
 func _on_message_device_list(message: GSMessage) -> void:
 	_ack(message.get_id())
-	for device_data in message.fields[GSMessage.MESSAGE_FIELD_DEVICES]:
+	for device_data: Dictionary in message.fields[GSMessage.MESSAGE_FIELD_DEVICES].values():
 		var device: GSDevice = GSDevice.deserialize(device_data)
 		_device_map[device.device_index] = device
 	var list: Array[GSDevice] = []
 	list.assign(_device_map.values())
 	client_device_list_received.emit(list)
-
-
-func _on_message_device_added(message: GSMessage) -> void:
-	var device: GSDevice = GSDevice.deserialize(message.fields)
-	_device_map[device.device_index] = device
-	client_device_added.emit(device)
-
-
-func _on_message_device_removed(message: GSMessage) -> void:
-	var device_index := int(message.fields[GSMessage.MESSAGE_FIELD_DEVICE_INDEX])
-	if _device_map.has(device_index):
-		var device: GSDevice = get_device(device_index)
-		_device_map.erase(device_index)
-		client_device_removed.emit(device)
-
 
 func _on_message_scanning_finished(message: GSMessage) -> void:
 	_scanning = false
@@ -691,20 +606,10 @@ func _on_message_sensor_reading(message: GSMessage) -> void:
 	_ack(message.get_id())
 	var id: int = message.get_id()
 	var device_index: int = message.fields[GSMessage.MESSAGE_FIELD_DEVICE_INDEX]
-	var sensor_index: int = message.fields[GSMessage.MESSAGE_FIELD_SENSOR_INDEX]
-	var sensor_type: String = message.fields[GSMessage.MESSAGE_FIELD_SENSOR_TYPE]
-	var sensor_data: PackedInt32Array = message.fields[GSMessage.MESSAGE_FIELD_DATA]
-	client_sensor_reading.emit(id, device_index, sensor_index, sensor_type, sensor_data)
-
-
-func _on_message_raw_reading(message: GSMessage) -> void:
-	_ack(message.get_id())
-	var id: int = message.get_id()
-	var device_index: int = message.fields[GSMessage.MESSAGE_FIELD_DEVICE_INDEX]
-	var endpoint: String = message.fields[GSMessage.MESSAGE_FIELD_ENDPOINT]
-	var raw_data: PackedByteArray = message.fields[GSMessage.MESSAGE_FIELD_DATA]
-	client_raw_reading.emit(id, device_index, endpoint, raw_data)
-
+	var feature_index: int = message.fields[GSMessage.MESSAGE_FIELD_FEATURE_INDEX]
+	var input_type: String = message.fields[GSMessage.MESSAGE_FIELD_INPUT_TYPE]
+	var input_data: PackedInt32Array = message.fields[GSMessage.MESSAGE_FIELD_DATA]
+	client_sensor_reading.emit(id, device_index, feature_index, input_type, input_data)
 
 func _on_handle_message(message: GSMessage) -> void:
 	if not _message_handlers.has(message.message_type):

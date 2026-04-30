@@ -1,4 +1,4 @@
-class_name GSActuatorType
+class_name GSOutputType
 ## Defines the available actuator types in buttplug.io.
 ##
 ## The acuator types define what type of actions a device can perform such as vibration, rotation, 
@@ -7,7 +7,11 @@ class_name GSActuatorType
 const UNKNOWN: String = "Unknown"
 const VIBRATE: String = "Vibrate"
 const ROTATE: String = "Rotate"
+const ROTATION_WITH_DIRECTION = "RotationWithDirection"
 const OSCILLATE: String = "Oscillate"
 const CONSTRICT: String = "Constrict"
-const INFLATE: String = "Inflate"
+const SPRAY: String = "Spray"
+const TEMPERATURE: String = "Temperature"
+const LED: String = "Led"
 const POSITION: String = "Position"
+const HW_POSITION_WITH_DURATION: String = "HwPositionWithDuration"

@@ -201,7 +201,9 @@ func _on_device_list_item_clicked(index: int, at_position: Vector2, mouse_button
 func _add_scalars(device: GSDevice):
 	_clear_container(_scalar_container)
 	for feature in device.features:
-		if feature.feature_command == GSMessage.MESSAGE_TYPE_SCALAR_CMD:
+		if (!feature.outputs.keys().has(GSOutputType.HW_POSITION_WITH_DURATION) &&
+			!feature.outputs.keys().has(GSOutputType.ROTATION_WITH_DIRECTION) &&
+			feature.outputs.size() > 0):
 			var scalar = SCALAR_CONTROL.instantiate() as GSScalarControl
 			scalar.device = device
 			scalar.feature = feature
@@ -212,7 +214,7 @@ func _add_scalars(device: GSDevice):
 func _add_linears(device: GSDevice):
 	_clear_container(_linear_container)
 	for feature in device.features:
-		if feature.feature_command == GSMessage.MESSAGE_TYPE_LINEAR_CMD:
+		if feature.outputs.keys().has(GSOutputType.HW_POSITION_WITH_DURATION):
 			var linear = LINEAR_CONTROL.instantiate() as GSLinearControl
 			linear.device = device
 			linear.feature = feature
@@ -223,7 +225,7 @@ func _add_linears(device: GSDevice):
 func _add_rotations(device: GSDevice):
 	_clear_container(_rotation_container)
 	for feature in device.features:
-		if feature.feature_command == GSMessage.MESSAGE_TYPE_ROTATE_CMD:
+		if feature.outputs.keys().has(GSOutputType.ROTATION_WITH_DIRECTION):
 			var rotate = ROTATE_CONTROL.instantiate() as GSRotateControl
 			rotate.device = device
 			rotate.feature = feature
@@ -234,7 +236,7 @@ func _add_rotations(device: GSDevice):
 func _add_sensors(device: GSDevice):
 	_clear_container(_sensor_container)
 	for feature in device.features:
-		if feature.feature_command == GSMessage.MESSAGE_TYPE_SENSOR_READ_CMD:
+		if feature.inputs.size() > 0:
 			var sensor = SENSOR_CONTROL.instantiate() as GSSensorControl
 			sensor.device = device
 			sensor.feature = feature

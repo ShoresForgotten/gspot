@@ -15,13 +15,14 @@ var feature: GSFeature
 
 func _ready() -> void:
 	feature.sensor_value_read.connect(_on_feature_sensor_value_read)
-	_sensor_type.text = feature.sensor_type
+	_sensor_type.text = feature.inputs.keys()[0]
 	_index.text = str(feature.feature_index)
 	_setup_buttons()
 
 
 func _setup_buttons():
-	if feature.feature_command.begins_with("SensorSubscribe"):
+	var first_input = feature.inputs.keys()[0]
+	if feature.inputs[first_input].commands.has("Subscribe"): #TODO: This is a hardcoded string
 		_subscribe.visible = true
 		_unsubscribe.visible = true
 		_label4.visible = false

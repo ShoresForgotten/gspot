@@ -16,6 +16,4 @@ func _ready() -> void:
 
 func _on_position_value_changed(value: float) -> void:
 	value = clampf(0.0 if _position.max_value == 0.0 else value / _position.max_value, 0.0, 1.0)
-	await GSClient.send_feature(feature, value, int(_duration.value))
-
-
+	await GSClient.send_feature(feature, GSOutputType.HW_POSITION_WITH_DURATION, value, int(_duration.value))

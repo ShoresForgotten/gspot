@@ -10,12 +10,15 @@ var feature: GSFeature
 
 
 func _ready() -> void:
-	_actuator_type.text = feature.actuator_type
+	var actuator_type_string= feature.outputs.keys()[0]
+	_actuator_type.text = actuator_type_string
 	_index.text = str(feature.feature_index)
-	if feature.step_count != 0:
-		_scalar.max_value = feature.step_count
+	var output_range = feature.outputs[actuator_type_string].value_range
+	var step_count = output_range.range_max - output_range.range_min
+	if step_count != 0:
+		_scalar.max_value = step_count
 
 
 func _on_scalar_value_changed(value: float) -> void:
 	value = clampf(0.0 if _scalar.max_value == 0.0 else value / _scalar.max_value, 0.0, 1.0)
-	GSClient.send_feature(feature, value)
+	GSClient.send_feature(feature, feature.outputs.keys()[0], value)

@@ -15,4 +15,4 @@ func _ready() -> void:
 
 func _on_speed_value_changed(value: float) -> void:
 	value = clampf(value / 100.0, 0.0, 1.0)
-	GSClient.send_feature(feature, value, 0.0, _clockwise.button_pressed)
+	GSClient.send_feature(feature, GSOutputType.ROTATION_WITH_DIRECTION, value, 0.0, _clockwise.button_pressed)
