@@ -1,52 +1,52 @@
-[gd_scene load_steps=4 format=3 uid="uid://clied2s4wnp00"]
+[gd_scene format=3 uid="uid://clied2s4wnp00"]
 
 [ext_resource type="Theme" uid="uid://cnuol0ry2vobn" path="res://assets/gspot_theme.tres" id="1_3y3m1"]
 [ext_resource type="Script" uid="uid://cqnqna0nuytu1" path="res://ui/gsrotate_control.gd" id="2_ry2mj"]
 [ext_resource type="LabelSettings" uid="uid://cyuy5onflhliv" path="res://assets/shadowed_label.tres" id="3_sevyu"]
 
-[node name="GSRotateControl" type="VBoxContainer"]
+[node name="GSRotateControl" type="VBoxContainer" unique_id=139977868]
 offset_top = 86.0
 offset_right = 73.0
 offset_bottom = 86.0
 script = ExtResource("2_ry2mj")
 
-[node name="GridContainer" type="GridContainer" parent="."]
+[node name="GridContainer" type="GridContainer" parent="." unique_id=2048624975]
 layout_mode = 2
 theme = ExtResource("1_3y3m1")
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="Label" type="Label" parent="GridContainer"]
+[node name="Label" type="Label" parent="GridContainer" unique_id=1397264416]
 layout_mode = 2
 text = "Index"
 label_settings = ExtResource("3_sevyu")
 vertical_alignment = 1
 
-[node name="Index" type="Label" parent="GridContainer"]
+[node name="Index" type="Label" parent="GridContainer" unique_id=1297661652]
 unique_name_in_owner = true
 layout_mode = 2
 label_settings = ExtResource("3_sevyu")
 vertical_alignment = 1
 
-[node name="Label2" type="Label" parent="GridContainer"]
+[node name="Label2" type="Label" parent="GridContainer" unique_id=207078523]
 layout_mode = 2
-text = "Speed"
+text = "Value"
 label_settings = ExtResource("3_sevyu")
 vertical_alignment = 1
 
-[node name="Speed" type="HSlider" parent="GridContainer"]
+[node name="Speed" type="HSlider" parent="GridContainer" unique_id=2016152987]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 
-[node name="Label3" type="Label" parent="GridContainer"]
+[node name="Label3" type="Label" parent="GridContainer" unique_id=40851848]
 layout_mode = 2
 text = "Clockwise"
 label_settings = ExtResource("3_sevyu")
 vertical_alignment = 1
 
-[node name="Clockwise" type="CheckBox" parent="GridContainer"]
+[node name="Clockwise" type="CheckBox" parent="GridContainer" unique_id=897036638]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true

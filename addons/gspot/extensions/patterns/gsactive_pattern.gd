@@ -100,7 +100,7 @@ func play() -> void:
 	played.emit(self)
 	await GSClient.send_feature(
 		feature,
-		feature.outputs.keys()[0],
+		feature.outputs.keys().front(),
 		_get_value(0.0),
 		linear_duration * 1000.0, 
 		rotate_clockwise

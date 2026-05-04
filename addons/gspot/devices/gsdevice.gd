@@ -6,7 +6,7 @@ extends RefCounted
 ## as well as the features it contains. Also present are helper methods to quickly access device 
 ## features such as [method vibrate], [method rotate], and [method position].
 ##
-## @tutorial(Spec Reference): https://buttplug-spec.docs.buttplug.io/docs/spec/enumeration#devicelist
+## @tutorial(Spec Reference): https://buttplug.io/docs/spec/device_information
 
 ## The device name as given by the device itself.
 var device_name: String
@@ -14,7 +14,7 @@ var device_name: String
 var device_display_name: String
 ## The device index in the device list.
 var device_index: int = -1
-## THe message timing gap, in milliseconds. This determines the minimum interval to wait between 
+## The message timing gap, in milliseconds. This determines the minimum interval to wait between 
 ## messages. You should prefer using [method get_message_rate] to default to the project settings 
 ## value if this is not set (and it often is not).
 var device_message_timing_gap: int
@@ -49,10 +49,9 @@ func get_display_name() -> String:
 	return device_name
 
 
-## Returns [code]true[/code] if the given feature command (ScalarCmd, RotateCmd, LinearCmd, etc.) 
-## is present.
-func has_feature(feature_command: String) -> bool:
-	return features.any(func(f: GSFeature): return f.feature_command == feature_command)
+## Returns [code]true[/code] if the given output type is present.
+func has_output(output_type: String) -> bool:
+	return features.any(func(f: GSFeature): return f.outputs.keys().has(output_type))
 
 
 ## Returns a list of all features for the given feature command (ScalarCmd, RotateCmd, LinearCmd, etc.).
@@ -75,8 +74,8 @@ func get_feature(feature_command: String) -> GSFeature:
 ## present. 
 ## [br][br]
 ## See [GSOutputType] for a list of available types.
-func has_actuator_type(actuator_type: String) -> bool:
-	return features.any(func(f: GSFeature): return f.actuator_type == actuator_type)
+func has_actuator_type(output_type: String) -> bool:
+	return features.any(func(f: GSFeature): return f.outputs.has(output_type))
 
 
 ## Returns a list of all features for the given output type. 

@@ -1,7 +1,7 @@
 class_name GSOutputType
-## Defines the available actuator types in buttplug.io.
+## Defines the available output types in buttplug.io.
 ##
-## The acuator types define what type of actions a device can perform such as vibration, rotation, 
+## The output types define what type of actions a device can perform such as vibration, rotation, 
 ## or linear position movement.
 
 const UNKNOWN: String = "Unknown"

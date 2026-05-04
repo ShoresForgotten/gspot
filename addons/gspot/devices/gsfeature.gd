@@ -20,7 +20,9 @@ var device: GSDevice
 var feature_index: int = -1
 ## The feature descriptor is a text description of the feature, if available.
 var feature_descriptor: String
+## The outputs (actuators) belonging to the feature
 var outputs: Dictionary[String, GSOutput] = {}
+## The inputs (sensors) belonging to the feature
 var inputs: Dictionary[String, GSInput] = {}
 
 var _read_sensor_id: int = -1
@@ -73,9 +75,9 @@ func get_display_name() -> String:
 	if not GSUtil.ne(feature_descriptor) and feature_descriptor != "NA":
 		return feature_descriptor
 	if not outputs.is_empty():
-		return outputs.keys()[0]
+		return outputs.keys().front()
 	if not inputs.is_empty():
-		return inputs.keys()[0]
+		return inputs.keys().front()
 	return ""
 
 
@@ -90,7 +92,7 @@ func get_display_name() -> String:
 ## [br][br]
 ## If the feature is a LinearCmd this method can be awaited on.
 func start(value: float, output_type: String, duration: float = 0.0, clockwise: bool = true) -> void:
-	if outputs.is_empty():
+	if outputs.is_empty() || !outputs.has(output_type):
 		return
 	await GSClient.send_feature(self, output_type, clampf(value, 0.0, 1.0), duration, clockwise)
 
@@ -106,4 +108,4 @@ func read_sensor() -> void:
 	if inputs.is_empty():
 		return
 	# This doesn't account for multiple inputs on a feature
-	_read_sensor_id = GSClient.read_sensor(device.device_index, feature_index, inputs.keys()[0])
+	_read_sensor_id = GSClient.read_sensor(device.device_index, feature_index, inputs.keys().front())

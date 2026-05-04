@@ -65,12 +65,13 @@ signal client_frame_received(frame: String)
 signal client_message(message: String)
 ## Emitted when a device scan has finished and [method get_devices] can be called.
 signal client_scan_finished()
-## Emitted when a value has returned from [method read_sensor].
-signal client_sensor_reading(
+## Emitted when a value has returned from [method read_input], or when a subscribed input sends a
+## reading.
+signal client_input_reading(
 	id: int, 
 	device_index: int, 
-	sensor_index: int, 
-	sensor_type: String, 
+	feature_index: int, 
+	input_type: String, 
 	data: PackedInt32Array
 )
 ## Emitted when a server error has occurred.
@@ -136,6 +137,7 @@ func get_client_version() -> String:
 func get_client_string() -> String:
 	return "%s v%s" % [ get_client_name(), get_client_version() ]
 
+
 ## Returns the connected hostname.
 func get_hostname() -> String:
 	return _hostname
@@ -154,7 +156,8 @@ func get_server_name() -> String:
 ## Returns the connected server's protocol major version.
 func get_protocol_version_major() -> int:
 	return _protocol_version_major
-	
+
+
 ## Returns the connected server's protocol minor version.
 func get_protocol_version_minor() -> int:
 	return _protocol_version_minor
@@ -175,8 +178,8 @@ func is_client_connected() -> bool:
 	return get_client_state() == ClientState.CONNECTED
 
 
-## Adds a message handler to handle the specified message type. This allows the developer override 
-## specific message functionality without needing to modify the GSClient itself.
+## Adds a message handler to handle the specified message type. This allows the developer to
+## override specific message functionality without needing to modify the GSClient itself.
 func add_message_handler(message_type: String, handler: Callable):
 	_message_handlers[message_type] = handler
 
@@ -246,7 +249,10 @@ func start(
 
 ## Stops the client and disconnects from a connected server.
 func stop() -> void:
+	if _state == ClientState.CONNECTED:
+		send(GSDisconnect.new(_get_message_id()))
 	_peer.close(1000, "Client requested shutdown.")
+	_state = ClientState.DISCONNECTED
 	logv("%s stopping..." % get_client_string())
 
 
@@ -294,18 +300,28 @@ func get_device_by_name(device_name: String) -> GSDevice:
 	return null
 
 
-## Sends a feature activation to the server. 
+## Sends a feature output activation to the server. See also [method GSClient.send_value],
+## [method GSClient.send_value_with_duration], and [method GSClient.send_value_with_direction] for
+## more accurate control, at the cost of having to check the minimum and maximum output ranges for
+## outputs and use milliseconds for durations.
 ## [br][br]
 ## [param feature] is the feature to activate.
 ## [br]
 ## [param value] is a value between [code]0.0[/code] and [code]1.0[/code] where [code]0.0[/code] 
 ## is no activation and [code]1.0[/code] is max activation.
 ## [br]
-## [param duration] sets the duration, in seconds. A value of [code]0.0[/code] is always on.
+## [param duration] sets the duration, in seconds. A value of [code]0.0[/code] is always on. For 
+## linear outputs this will instead control how fast the output reaches the target position.
+## Currently this behavior only exists for features controlled with the
+## [constant GSOutputType.HW_POSITION_WITH_DURATION] command.
 ## [br]
-## [param clockwise] sets the direction of rotation. Only applicable for rotation actuators.
+## [param clockwise] sets the direction of rotation. Only applicable for rotation outputs used with
+## the [constant GSOutputType.ROTATION_WITH_DIRECTION] command.
 ## [br][br]
-## If the feature is a LinearCmd this method can be awaited on.
+## If the command is [constant GSOutputType.HW_POSITION_WITH_DURATION] (and the device supports the
+## command), this function can be awaited on. Be aware of [member GSDevice.device_message_timing_gap]
+## when attempting to send more messages when the motion is done, as additional commands may be
+## ignored.
 func send_feature(
 	feature: GSFeature, 
 	command: String,
@@ -315,97 +331,152 @@ func send_feature(
 ) -> void:
 	if not feature or not feature.device:
 		return
+		
 	var range: GSRange = feature.outputs[command].value_range
 	var int_value: int = (range.range_max - range.range_min) * value + range.range_min
 	match command:
 		GSOutputType.ROTATION_WITH_DIRECTION:
-			send_rotate(feature.device.device_index, feature.feature_index, clockwise, int_value)
+			send_value_with_clockwise(
+				feature.device.device_index,
+				feature.feature_index,
+				int_value,
+				clockwise,
+				command
+			)
 			if duration > 0.0:
 				_create_feature_duration(feature, duration)
 		GSOutputType.HW_POSITION_WITH_DURATION:
-			await send_linear(feature.device.device_index, feature.feature_index, duration, int_value)
+			await send_value_with_duration(
+				feature.device.device_index,
+				feature.feature_index,
+				int_value,
+				floor(duration * 1000),
+				command
+			)
 		_:
-			send_scalar(
+			send_value(
 				feature.device.device_index, 
 				feature.feature_index, 
-				command, 
-				int_value
+				int_value,
+				command
 			)
 			if duration > 0.0:
 				_create_feature_duration(feature, duration)
 
-## Sends a scalar command to the server.
+## Sends a command with only a value to the server.
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
-## [param command_type] is the output type of the feature.
+## [param value] is a value between the minimum and maximum values (inclusive) of the targeted 
+## output.
 ## [br]
-## [param value] is a value between the minimum and maximum values (inclusive) of the targeted output.
-func send_scalar(
-	device_index: int, 
-	feature_index: int, 
-	output_type: String, 
-	value: int
+## [param command_type] is the type of command to send to the feature.
+func send_value(
+	device_index: int,
+	feature_index: int,
+	value: int,
+	command_type: String,
 ) -> void:
-	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, output_type, value))
+	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, command_type, value))
 
 
-## Sends a linear command to the server.
+## Sends a command with a value and a duration to the server. This is mainly used for strokers,
+## where value gives the position and duration gives the time to reach the position
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
-## [param duration] sets the duration, in seconds, that it should take for the device to reach the 
-## specified [param position].
+## [param value] is a value between the minimum and maximum values of the feature output.
 ## [br]
-## [param position] is a value between the minimum and maximum values of the feature output.
-func send_linear(device_index: int, feature_index: int, duration: int, position: int) -> void:
-	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, GSOutputType.HW_POSITION_WITH_DURATION, position, {"Duration": duration}))
+## [param duration] sets the duration, in milliseconds, that it should take for the device to reach
+## the specified [param position].
+## [br]
+## [param command] is the command type to be sent. Currently only
+## [constant GSOutputType.HW_POSITION_WITH_DURATION] has a duration field
+## [br] [br]
+## Can be awaited on, but be aware of [member GSDevice.device_message_timing_gap] when trying to
+## send more commands when the current motion is finished, as additional commands may be ignored.
+func send_value_with_duration(
+	device_index: int,
+	feature_index: int,
+	value: int,
+	duration: int,
+	command: String = GSOutputType.HW_POSITION_WITH_DURATION
+) -> void:
+	send(GSOutputCmd.new(
+			_get_message_id(),
+			device_index,
+			feature_index,
+			command,
+			value,
+			{"Duration": duration}
+		))
 	await create_tween().tween_interval(float(duration) / 1000.0).finished
 
 
-## Sends a rotate command to the server.
+## Sends a command to the server with a value and a clock direction. If specifying a clock direction
+## is unnecessary, use [method GSClient.send_value] instead. As of version 4.0 every device with a
+## [constant GSOutputType.ROTATION_WITH_DIRECTION] output should also support
+## [constant GSOutputType.ROTATION] commands.
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
+## [param value] is a value between the minimum and maximum values of the 
+## targeted output.
+## [br]
 ## [param clockwise] sets the direction of rotation.
 ## [br]
-## [param speed] is a value between the minimum and maximum values of the output
-func send_rotate(device_index: int, feature_index: int, clockwise: bool, speed: int) -> void:
-	send(GSOutputCmd.new(_get_message_id(), device_index, feature_index, GSOutputType.ROTATION_WITH_DIRECTION, speed, {"Clockwise": clockwise}))
+## [param command] is the command type to send. Currently only 
+## [constant GSOutputType.ROTATION_WITH_DIRECTION] includes a clockwise direction field.
+func send_value_with_clockwise(
+	device_index: int,
+	feature_index: int,
+	value: int,
+	clockwise: bool,
+	command: String = GSOutputType.ROTATION_WITH_DIRECTION
+) -> void:
+	send(GSOutputCmd.new(
+		_get_message_id(),
+		device_index,
+		feature_index,
+		command,
+		value,
+		{"Clockwise": clockwise}
+	))
 
 
-## Begins an input read of the specified device feature. The read value will be returned via 
-## [signal client_sensor_reading]. 
+## Begins an input read of the specified device input feature. The read value will be returned via 
+## [signal client_input_reading].
 ## [br][br]
 ## This function returns the message ID that was sent to the server requesting the sensor value. 
-## This can be matched up with the ID value returned in [signal client_sensor_reading].
+## This can be matched up with the ID value returned in [signal client_input_reading].
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
 ## [param input_type] is the input type to read.
-func read_sensor(device_index: int, feature_index: int, input_type: String) -> int:
+func read_input(device_index: int, feature_index: int, input_type: String) -> int:
 	var id = _get_message_id()
 	send(GSInputCmd.new(id, device_index, feature_index, input_type, "Read"))
 	return id
 
 
 ## Subscribes to a stream of data from the specified device input. The read values will be 
-## returned via [signal client_sensor_reading]. 
+## returned via [signal client_input_reading]. Will only work if the corresponding
+## [member GSInput.commands] contains "Subscribe".
 ## [br][br]
 ## [param device_index] is the device's index.
 ## [br]
 ## [param input_index] is the input index on the device.
 ## [br]
 ## [param input_type] is the input type to read.
-func send_sensor_subscribe(device_index: int, feature_index: int, input_type: String) -> void:
+func send_input_subscribe(device_index: int, feature_index: int, input_type: String) -> void:
 	send(GSInputCmd.new(_get_message_id(), device_index, feature_index, input_type, "Subscribe"))
 
 
@@ -416,7 +487,7 @@ func send_sensor_subscribe(device_index: int, feature_index: int, input_type: St
 ## [param feature_index] is the feature index on the device.
 ## [br]
 ## [param input_type] is the input type to read.
-func send_sensor_unsubscribe(device_index: int, feature_index: int, input_type: String) -> void:
+func send_input_unsubscribe(device_index: int, feature_index: int, input_type: String) -> void:
 	send(GSInputCmd.new(_get_message_id(), device_index, feature_index, input_type, "Unsubscribe"))
 
 
@@ -609,7 +680,7 @@ func _on_message_sensor_reading(message: GSMessage) -> void:
 	var feature_index: int = message.fields[GSMessage.MESSAGE_FIELD_FEATURE_INDEX]
 	var input_type: String = message.fields[GSMessage.MESSAGE_FIELD_INPUT_TYPE]
 	var input_data: PackedInt32Array = message.fields[GSMessage.MESSAGE_FIELD_DATA]
-	client_sensor_reading.emit(id, device_index, feature_index, input_type, input_data)
+	client_input_reading.emit(id, device_index, feature_index, input_type, input_data)
 
 func _on_handle_message(message: GSMessage) -> void:
 	if not _message_handlers.has(message.message_type):

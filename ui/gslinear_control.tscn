@@ -1,58 +1,60 @@
-[gd_scene load_steps=5 format=3 uid="uid://b53sf3ytfone1"]
+[gd_scene format=3 uid="uid://b53sf3ytfone1"]
 
 [ext_resource type="Theme" uid="uid://cnuol0ry2vobn" path="res://assets/gspot_theme.tres" id="1_dekfd"]
 [ext_resource type="Script" uid="uid://nbmf76jj8ku" path="res://ui/gslinear_control.gd" id="2_xs70b"]
 [ext_resource type="LabelSettings" uid="uid://cyuy5onflhliv" path="res://assets/shadowed_label.tres" id="3_kwsa5"]
 [ext_resource type="PackedScene" uid="uid://do6sglkfvaaps" path="res://ui/pattern_panel.tscn" id="4_lpejh"]
 
-[node name="GSLinearControl" type="VBoxContainer"]
+[node name="GSLinearControl" type="VBoxContainer" unique_id=507048440]
 offset_right = 206.0
 offset_bottom = 206.0
 script = ExtResource("2_xs70b")
 
-[node name="GridContainer" type="GridContainer" parent="."]
+[node name="GridContainer" type="GridContainer" parent="." unique_id=703465677]
 layout_mode = 2
 theme = ExtResource("1_dekfd")
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="Label" type="Label" parent="GridContainer"]
+[node name="Label" type="Label" parent="GridContainer" unique_id=706145504]
 layout_mode = 2
 text = "Index"
 label_settings = ExtResource("3_kwsa5")
 vertical_alignment = 1
 
-[node name="Index" type="Label" parent="GridContainer"]
+[node name="Index" type="Label" parent="GridContainer" unique_id=247873750]
 unique_name_in_owner = true
 layout_mode = 2
 label_settings = ExtResource("3_kwsa5")
 vertical_alignment = 1
 
-[node name="Label2" type="Label" parent="GridContainer"]
+[node name="Label2" type="Label" parent="GridContainer" unique_id=1971464543]
 layout_mode = 2
 text = "Duration (ms)"
 label_settings = ExtResource("3_kwsa5")
 vertical_alignment = 1
 
-[node name="Duration" type="SpinBox" parent="GridContainer"]
+[node name="Duration" type="SpinBox" parent="GridContainer" unique_id=125467086]
 unique_name_in_owner = true
 layout_mode = 2
 max_value = 9999.0
 value = 1000.0
+rounded = true
 
-[node name="Label3" type="Label" parent="GridContainer"]
+[node name="Label3" type="Label" parent="GridContainer" unique_id=908123965]
 layout_mode = 2
 text = "Position"
 label_settings = ExtResource("3_kwsa5")
 vertical_alignment = 1
 
-[node name="Position" type="HSlider" parent="GridContainer"]
+[node name="Position" type="HSlider" parent="GridContainer" unique_id=468416820]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
+rounded = true
 
-[node name="PatternPanel" parent="." instance=ExtResource("4_lpejh")]
+[node name="PatternPanel" parent="." unique_id=555343192 instance=ExtResource("4_lpejh")]
 layout_mode = 2
 
 [connection signal="value_changed" from="GridContainer/Position" to="." method="_on_position_value_changed"]

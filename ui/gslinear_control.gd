@@ -11,9 +11,17 @@ var feature: GSFeature
 
 func _ready() -> void:
 	_index.text = str(feature.feature_index)
-	if feature.step_count != 0:
-		_position.max_value = feature.step_count
+	var value_range = feature.outputs[GSOutputType.HW_POSITION_WITH_DURATION].value_range
+	_position.min_value = value_range.range_min
+	_position.max_range = value_range.range_max
+	var duration_range = feature.outputs[GSOutputType.HW_POSITION_WITH_DURATION].duration_range
+	_duration.min_value = duration_range.range_min
+	_duration.max_value = duration_range.range_max
 
 func _on_position_value_changed(value: float) -> void:
-	value = clampf(0.0 if _position.max_value == 0.0 else value / _position.max_value, 0.0, 1.0)
-	await GSClient.send_feature(feature, GSOutputType.HW_POSITION_WITH_DURATION, value, int(_duration.value))
+	await GSClient.send_feature(
+		feature,
+		GSOutputType.HW_POSITION_WITH_DURATION,
+		value,
+		_duration.value,
+	)
