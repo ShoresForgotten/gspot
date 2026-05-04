@@ -15,8 +15,7 @@ var device_display_name: String
 ## The device index in the device list.
 var device_index: int = -1
 ## The message timing gap, in milliseconds. This determines the minimum interval to wait between 
-## messages. You should prefer using [method get_message_rate] to default to the project settings 
-## value if this is not set (and it often is not).
+## messages.
 var device_message_timing_gap: int
 ## A list of available features on this device.
 var features: Array[GSFeature] = []

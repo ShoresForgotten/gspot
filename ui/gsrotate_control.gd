@@ -11,9 +11,9 @@ var feature: GSFeature
 
 func _ready() -> void:
 	_index.text = str(feature.feature_index)
-	var range = feature.outputs[GSOutputType.ROTATION_WITH_DIRECTION].value_range
-	_speed.min_value = range.range_min
-	_speed.max_value = range.range_max
+	var value_range = feature.outputs[GSOutputType.ROTATION_WITH_DIRECTION].value_range
+	_speed.min_value = value_range.range_min
+	_speed.max_value = value_range.range_max
 
 
 func _on_speed_value_changed(value: float) -> void:

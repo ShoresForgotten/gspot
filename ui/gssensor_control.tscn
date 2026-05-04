@@ -1,10 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://ws8awmauqh54"]
+[gd_scene format=3 uid="uid://ws8awmauqh54"]
 
 [ext_resource type="Theme" uid="uid://cnuol0ry2vobn" path="res://assets/gspot_theme.tres" id="1_j7t5d"]
 [ext_resource type="Script" uid="uid://cmfnt5n6gpv0h" path="res://ui/gssensor_control.gd" id="2_2jg4r"]
 [ext_resource type="LabelSettings" uid="uid://cyuy5onflhliv" path="res://assets/shadowed_label.tres" id="3_ljh3s"]
 
-[node name="GSSensorControl" type="GridContainer"]
+[node name="GSSensorControl" type="GridContainer" unique_id=350039457]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -16,59 +16,59 @@ theme_override_constants/v_separation = 8
 columns = 2
 script = ExtResource("2_2jg4r")
 
-[node name="Label" type="Label" parent="."]
+[node name="Label" type="Label" parent="." unique_id=783997438]
 layout_mode = 2
 text = "Sensor Type"
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="SensorType" type="Label" parent="."]
+[node name="SensorType" type="Label" parent="." unique_id=676903050]
 unique_name_in_owner = true
 layout_mode = 2
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="Label2" type="Label" parent="."]
+[node name="Label2" type="Label" parent="." unique_id=510281148]
 layout_mode = 2
 text = "Index"
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="Index" type="Label" parent="."]
+[node name="Index" type="Label" parent="." unique_id=386797954]
 unique_name_in_owner = true
 layout_mode = 2
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="Label3" type="Label" parent="."]
+[node name="Label3" type="Label" parent="." unique_id=1479459800]
 layout_mode = 2
 text = "Value"
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="Value" type="Label" parent="."]
+[node name="Value" type="Label" parent="." unique_id=1852006541]
 unique_name_in_owner = true
 layout_mode = 2
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="Label4" type="Label" parent="."]
+[node name="Label4" type="Label" parent="." unique_id=1557039762]
 layout_mode = 2
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="ReadSensor" type="Button" parent="."]
+[node name="ReadSensor" type="Button" parent="." unique_id=783950851]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Read Sensor"
 
-[node name="Subscribe" type="Button" parent="."]
+[node name="Subscribe" type="Button" parent="." unique_id=283917771]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 text = "Subscribe"
 
-[node name="Unsubscribe" type="Button" parent="."]
+[node name="Unsubscribe" type="Button" parent="." unique_id=481570512]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2

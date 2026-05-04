@@ -17,6 +17,7 @@ func _ready() -> void:
 	var step_count = output_range.range_max - output_range.range_min
 	_scalar.min_value = output_range.range_min
 	_scalar.max_value = output_range.range_max
+	_scalar.step_count = step_count
 
 
 func _on_scalar_value_changed(value: float) -> void:
