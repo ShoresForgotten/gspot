@@ -1,5 +1,5 @@
 class_name GSOutputType
-## Defines the available output types in buttplug.io.
+## Defines the available output command types in buttplug.io.
 ##
 ## The output types define what type of actions a device can perform such as vibration, rotation, 
 ## or linear position movement.

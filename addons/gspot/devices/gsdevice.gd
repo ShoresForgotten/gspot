@@ -73,14 +73,14 @@ func get_feature(feature_command: String) -> GSFeature:
 ## present. 
 ## [br][br]
 ## See [GSOutputType] for a list of available types.
-func has_actuator_type(output_type: String) -> bool:
+func has_output_type(output_type: String) -> bool:
 	return features.any(func(f: GSFeature): return f.outputs.has(output_type))
 
 
 ## Returns a list of all features for the given output type. 
 ## [br][br]
 ## See [GSOutputType] for a list of available types.
-func get_features_by_actuator_type(output_type: String) -> Array[GSFeature]:
+func get_features_by_output_type(output_type: String) -> Array[GSFeature]:
 	var list: Array[GSFeature] = []
 	list.assign(features.filter(func(f: GSFeature): return f.outputs.keys().has(output_type)))
 	return list
@@ -90,22 +90,11 @@ func get_features_by_actuator_type(output_type: String) -> Array[GSFeature]:
 ## that type is available. 
 ## [br][br]
 ## See [GSActuatorType] for a list of available types.
-func get_feature_by_actuator_type(actuator_type: String) -> GSFeature:
-	var features: Array[GSFeature] = get_features_by_actuator_type(actuator_type)
+func get_feature_by_output_type(output_type: String) -> GSFeature:
+	var features: Array[GSFeature] = get_features_by_output_type(output_type)
 	if features.size() > 0:
 		return features.front()
 	return null
-
-
-## Gets the preferred message rate for the device, in seconds. 
-## [br][br]
-## Attempts to use [member device_message_timing_gap] if it's set, otherwise it defaults to the 
-## Message Rate project setting.
-func get_message_rate() -> float:
-	var rate: float = float(device_message_timing_gap) / 1000.0
-	if rate <= 0.0:
-		return GSUtil.get_project_value(GSConstants.PROJECT_SETTINGS_MESSAGE_RATE, GSConstants.MESSAGE_RATE)
-	return rate
 
 
 ## Attempts to vibrate the device. If no vibrate feature is available this does nothing.
@@ -115,7 +104,7 @@ func get_message_rate() -> float:
 ## [br]
 ## [param duration] sets the duration, in seconds. A value of [code]0.0[/code] is always on.
 func vibrate(intensity: float = 1.0, duration: float = 0.0) -> GSFeature:
-	var feature: GSFeature = get_feature_by_actuator_type(GSOutputType.VIBRATE)
+	var feature: GSFeature = get_feature_by_output_type(GSOutputType.VIBRATE)
 	if not feature:
 		return null
 	GSClient.send_feature(feature, GSOutputType.VIBRATE, clampf(intensity, 0.0, 1.0), duration)
@@ -131,7 +120,7 @@ func vibrate(intensity: float = 1.0, duration: float = 0.0) -> GSFeature:
 ## [br]
 ## [param duration] sets the duration, in seconds. A value of [code]0.0[/code] is always on.
 func rotate(speed: float = 1.0, clockwise: bool = true, duration: float = 0.0) -> GSFeature:
-	var feature: GSFeature = get_feature_by_actuator_type(GSOutputType.ROTATE)
+	var feature: GSFeature = get_feature_by_output_type(GSOutputType.ROTATE)
 	if not feature:
 		return null
 	GSClient.send_feature(feature, GSOutputType.ROTATION_WITH_DIRECTION, clampf(speed, 0.0, 1.0), duration, clockwise)
@@ -145,7 +134,7 @@ func rotate(speed: float = 1.0, clockwise: bool = true, duration: float = 0.0) -
 ## [br]
 ## [param duration] sets the duration, in seconds. A value of [code]0.0[/code] is always on.
 func oscillate(intensity: float = 1.0, duration: float = 0.0) -> GSFeature:
-	var feature: GSFeature = get_feature_by_actuator_type(GSOutputType.OSCILLATE)
+	var feature: GSFeature = get_feature_by_output_type(GSOutputType.OSCILLATE)
 	if not feature:
 		return null
 	GSClient.send_feature(feature, GSOutputType.OSCILLATE, clampf(intensity, 0.0, 1.0), duration)
@@ -159,16 +148,11 @@ func oscillate(intensity: float = 1.0, duration: float = 0.0) -> GSFeature:
 ## [br]
 ## [param duration] sets the duration, in seconds. A value of [code]0.0[/code] is always on.
 func constrict(strength: float = 1.0, duration: float = 0.0) -> GSFeature:
-	var feature: GSFeature = get_feature_by_actuator_type(GSOutputType.CONSTRICT)
+	var feature: GSFeature = get_feature_by_output_type(GSOutputType.CONSTRICT)
 	if not feature:
 		return null
 	GSClient.send_feature(feature, GSOutputType.CONSTRICT, clampf(strength, 0.0, 1.0), duration)
 	return feature
-
-
-## Inflation was removed as an output type in Buttplug v4. This method does nothing now.
-func inflate(strength: float = 1.0, duration: float = 0.0) -> GSFeature:
-	return null
 
 
 ## Attempts to move the device to the specified position. If no position feature is available this 
@@ -182,7 +166,7 @@ func inflate(strength: float = 1.0, duration: float = 0.0) -> GSFeature:
 ## [br][br]
 ## Due to the duration required to move the device this method is asyc and can be awaited on.
 func position(duration: float, position: float) -> GSFeature:
-	var feature: GSFeature = get_feature_by_actuator_type(GSOutputType.HW_POSITION_WITH_DURATION)
+	var feature: GSFeature = get_feature_by_output_type(GSOutputType.HW_POSITION_WITH_DURATION)
 	if not feature:
 		return null
 	await GSClient.send_feature(feature, GSOutputType.HW_POSITION_WITH_DURATION, clampf(position, 0.0, 1.0), duration)

@@ -8,8 +8,6 @@ func _enter_tree() -> void:
 		ProjectSettings.set_as_basic(GSConstants.PROJECT_SETTING_CLIENT_NAME, true)
 	if ProjectSettings.has_setting(GSConstants.PROJECT_SETTING_CLIENT_VERSION):
 		ProjectSettings.set_as_basic(GSConstants.PROJECT_SETTING_CLIENT_VERSION, true)
-	if ProjectSettings.has_setting(GSConstants.PROJECT_SETTINGS_MESSAGE_RATE):
-		ProjectSettings.set_as_basic(GSConstants.PROJECT_SETTINGS_MESSAGE_RATE, true)
 
 
 func _exit_tree() -> void:
@@ -19,11 +17,6 @@ func _exit_tree() -> void:
 func _enable_plugin() -> void:
 	ProjectSettings.set_setting(GSConstants.PROJECT_SETTING_CLIENT_NAME, GSConstants.CLIENT_NAME)
 	ProjectSettings.set_setting(GSConstants.PROJECT_SETTING_CLIENT_VERSION, GSConstants.CLIENT_VERSION)
-	ProjectSettings.set_setting(GSConstants.PROJECT_SETTINGS_MESSAGE_RATE, GSConstants.MESSAGE_RATE)
-	ProjectSettings.add_property_info({
-		"name": GSConstants.PROJECT_SETTINGS_MESSAGE_RATE,
-		"type": TYPE_FLOAT
-	})
 
 
 func _disable_plugin() -> void:

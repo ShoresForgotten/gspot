@@ -6,9 +6,9 @@ A Godot 4 Plugin for interacting with intimate haptic devices via the [buttplug.
 
 **This plugin provides a buttplug.io standard compatibile client implementation. To interact with devices a server is also required. See [Intiface Central](https://intiface.com/central/).**
 
-Review the [protocol specification](https://buttplug-spec.docs.buttplug.io/docs/spec) for an idea of how to interact with this plugin and proper device flow.
+Review the [protocol specification](https://buttplug.io/docs/spec/) for an idea of how to interact with this plugin and proper device flow.
 
-A [client control panel](addons/gspot/ui/gscontrol_panel.tscn) is provided for testing devices and getting familiar with the client.
+A [client control panel](ui/gscontrol_panel.tscn) is provided for testing devices and getting familiar with the client.
 
 ## Quick Example
 ```gdscript
@@ -45,19 +45,15 @@ GSClient.loge("Error log message.")
 ## Project Settings
 Project settings are now available to configure how the GSClient identifies itself to buttplug.io servers, and if raw device commands are available.
 * ```gspot/client/client_name``` - The client name. Defaults to GSClient.
-* ```gspot/client/client_version``` - The client version. Currently defaults to 2.1.
-* ```gspot/client/message_rate``` - The default device command rate which dictates how fast commands should be sent to a device. Currently defaults to 0.2 seconds.
-* ```gspot/client/enable_raw_commands``` - Determines if the raw command methods on GSClient are available or not. Defaults to false. Hidden by advanced settings.
+* ```gspot/client/client_version``` - The client version. Currently defaults to 3.0.0.
 
 You can set these values in the Project Settings UI under the Gspot category. If you do not see them, try disabling and re-enabling the plugin.
 
 These values are also accessible via the GSClient.
 ```gdscript
 GSClient.get_client_name() # GSClient
-GSClient.get_client_version() # 2.0
-GSClient.get_client_string() # GSClient v2.0
-GSDevice.get_message_rate()
-GSClient.is_raw_command_enabled() # false
+GSClient.get_client_version() # 3.0.0
+GSClient.get_client_string() # GSClient v3.0.0
 ```
 
 ## Extensions
@@ -71,7 +67,7 @@ A [simple pattern editor](https://github.com/deadpixelsociety/gspot/blob/main/ui
 Example pattern usage:
 ```gdscript
 var device: GSDevice = GSClient.get_device_by_name("Lovense Calor")
-var feature: GSFeature = device.get_feature_by_actuator_type(GSActuatorTypes.VIBRATE)
+var feature: GSFeature = device.get_feature_by_command_type(GSOutputType.VIBRATE)
 
 var patterns: GSPatterns = GSClient.ext(GSPatterns.NAME)
 

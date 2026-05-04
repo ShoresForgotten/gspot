@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://do6sglkfvaaps"]
+[gd_scene format=3 uid="uid://do6sglkfvaaps"]
 
 [ext_resource type="Script" uid="uid://yalm7k2ekkbh" path="res://ui/pattern_panel.gd" id="1_p4chd"]
 [ext_resource type="LabelSettings" uid="uid://cyuy5onflhliv" path="res://assets/shadowed_label.tres" id="2_wwmwy"]
@@ -15,7 +15,7 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="PatternPanel" type="PanelContainer"]
+[node name="PatternPanel" type="PanelContainer" unique_id=636529866]
 offset_right = 153.0
 offset_bottom = 121.0
 size_flags_horizontal = 0
@@ -23,50 +23,50 @@ size_flags_vertical = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_p56hh")
 script = ExtResource("1_p4chd")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=653623195]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1155434996]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1561933633]
 layout_mode = 2
 text = "Patterns"
 label_settings = ExtResource("2_wwmwy")
 horizontal_alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer"]
+[node name="GridContainer" type="GridContainer" parent="MarginContainer/VBoxContainer" unique_id=834303566]
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="PlayPattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="PlayPattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer" unique_id=329370856]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Play"
 
-[node name="StopPattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="StopPattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer" unique_id=2018625268]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Stop"
 
-[node name="PausePattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="PausePattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer" unique_id=854709167]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Pause"
 
-[node name="ResumePattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer"]
+[node name="ResumePattern" type="Button" parent="MarginContainer/VBoxContainer/GridContainer" unique_id=738412810]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Resume"
 
-[node name="OpenDialog" type="FileDialog" parent="."]
+[node name="OpenDialog" type="FileDialog" parent="." unique_id=435668315]
 unique_name_in_owner = true
 title = "Open a File"
 initial_position = 4
