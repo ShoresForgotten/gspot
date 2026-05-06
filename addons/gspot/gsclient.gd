@@ -71,8 +71,7 @@ signal client_input_reading(
 	id: int, 
 	device_index: int, 
 	feature_index: int, 
-	input_type: String, 
-	data: PackedInt32Array
+	data: Dictionary,
 )
 ## Emitted when a server error has occurred.
 signal server_error(id: int, error: int, message: String)
@@ -104,7 +103,7 @@ func _init() -> void:
 	add_message_handler(GSMessage.MESSAGE_TYPE_SERVER_INFO, _on_message_server_info)
 	add_message_handler(GSMessage.MESSAGE_TYPE_DEVICE_LIST, _on_message_device_list)
 	add_message_handler(GSMessage.MESSAGE_TYPE_SCANNING_FINISHED, _on_message_scanning_finished)
-	add_message_handler(GSMessage.MESSAGE_TYPE_INPUT_READING, _on_message_sensor_reading)
+	add_message_handler(GSMessage.MESSAGE_TYPE_INPUT_READING, _on_message_input_reading)
 
 
 func _enter_tree() -> void:
@@ -114,6 +113,8 @@ func _enter_tree() -> void:
 
 func _exit_tree() -> void:
 	unload_extensions()
+	if _state == ClientState.CONNECTED:
+		stop()
 
 
 func _process(delta: float) -> void:
@@ -250,9 +251,10 @@ func start(
 ## Stops the client and disconnects from a connected server.
 func stop() -> void:
 	if _state == ClientState.CONNECTED:
+		#Disconnect is in the spec and changelog for v4, but is not currently implemented.
+		#When it eventually is, it should cause the server to close the connection itself and stop all devices.
 		send(GSDisconnect.new(_get_message_id()))
 	_peer.close(1000, "Client requested shutdown.")
-	_state = ClientState.DISCONNECTED
 	logv("%s stopping..." % get_client_string())
 
 
@@ -460,7 +462,7 @@ func send_value_with_clockwise(
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
-## [param input_type] is the input type to read.
+## [param input_type] is the input type to read, see [GSInputType].
 func read_input(device_index: int, feature_index: int, input_type: String) -> int:
 	var id = _get_message_id()
 	send(GSInputCmd.new(id, device_index, feature_index, input_type, "Read"))
@@ -475,7 +477,7 @@ func read_input(device_index: int, feature_index: int, input_type: String) -> in
 ## [br]
 ## [param input_index] is the input index on the device.
 ## [br]
-## [param input_type] is the input type to read.
+## [param input_type] is the input type to read, see [GSInputType].
 func send_input_subscribe(device_index: int, feature_index: int, input_type: String) -> void:
 	send(GSInputCmd.new(_get_message_id(), device_index, feature_index, input_type, "Subscribe"))
 
@@ -486,7 +488,7 @@ func send_input_subscribe(device_index: int, feature_index: int, input_type: Str
 ## [br]
 ## [param feature_index] is the feature index on the device.
 ## [br]
-## [param input_type] is the input type to read.
+## [param input_type] is the input type to read, see [GSInputType].
 func send_input_unsubscribe(device_index: int, feature_index: int, input_type: String) -> void:
 	send(GSInputCmd.new(_get_message_id(), device_index, feature_index, input_type, "Unsubscribe"))
 
@@ -653,7 +655,8 @@ func _on_message_server_info(message: GSMessage) -> void:
 		_protocol_version_major = int(message.fields[GSMessage.MESSAGE_FIELD_PROTOCOL_VERSION_MAJOR])
 		_protocol_version_minor = int(message.fields[GSMessage.MESSAGE_FIELD_PROTOCOL_VERSION_MINOR])
 		_max_ping_time = int(message.fields[GSMessage.MESSAGE_FIELD_MAX_PING_TIME])
-		if _max_ping_time <= 0:
+		if _max_ping_time < 0:
+			# Intiface Central seems to be perfectly happy not receiving ping messages if the timer is 0
 			_max_ping_time = DEFAULT_PING_TIME
 		logv("%s connected to %s!" % [ get_client_string(), _server_name ])
 		client_connection_changed.emit(true)
@@ -673,14 +676,13 @@ func _on_message_scanning_finished(message: GSMessage) -> void:
 	client_scan_finished.emit()
 
 
-func _on_message_sensor_reading(message: GSMessage) -> void:
+func _on_message_input_reading(message: GSMessage) -> void:
 	_ack(message.get_id())
 	var id: int = message.get_id()
 	var device_index: int = message.fields[GSMessage.MESSAGE_FIELD_DEVICE_INDEX]
 	var feature_index: int = message.fields[GSMessage.MESSAGE_FIELD_FEATURE_INDEX]
-	var input_type: String = message.fields[GSMessage.MESSAGE_FIELD_INPUT_TYPE]
-	var input_data: PackedInt32Array = message.fields[GSMessage.MESSAGE_FIELD_DATA]
-	client_input_reading.emit(id, device_index, feature_index, input_type, input_data)
+	var input_data: Dictionary = message.fields[GSMessage.MESSAGE_FIELD_READING]
+	client_input_reading.emit(id, device_index, feature_index, input_data)
 
 func _on_handle_message(message: GSMessage) -> void:
 	if not _message_handlers.has(message.message_type):

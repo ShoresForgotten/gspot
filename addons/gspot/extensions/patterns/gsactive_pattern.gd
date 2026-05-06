@@ -34,10 +34,7 @@ var feature: GSFeature = null
 ## The intensity modifier.
 var intensity: float = 1.0
 ## The pattern sample rate, in seconds.
-var sample_rate: float = GSUtil.get_project_value(
-	GSConstants.PROJECT_SETTINGS_MESSAGE_RATE, 
-	GSConstants.MESSAGE_RATE
-)
+var sample_rate: float
 ## Determines if the pattern will restart after it finishes.
 var loop: bool = false
 ## The amount of time, in seconds, it takes for a linear command to reach its final position.
@@ -66,8 +63,8 @@ func _process(delta: float) -> void:
 			await GSClient.send_feature(feature, GSOutputType.HW_POSITION_WITH_DURATION, _get_value(t), linear_duration * 1000.0)
 		elif feature.outputs.keys().has(GSOutputType.ROTATION_WITH_DIRECTION):
 			GSClient.send_feature(feature, GSOutputType.ROTATION_WITH_DIRECTION, _get_value(t), 0.0, rotate_clockwise)
-		elif feature.outputs.keys().size() > 0:
-			GSClient.send_feature(feature, feature.outputs.keys()[0], _get_value(t))
+		elif feature.outputs.keys().size() > 0: #TODO: Specify output type
+			GSClient.send_feature(feature, feature.outputs.keys().front(), _get_value(t))
 
 
 	if _tt >= pattern.duration:

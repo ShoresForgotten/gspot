@@ -111,7 +111,7 @@ func _on_client_device_removed(device: GSDevice):
 	_remove_device(device)
 
 
-func _on_client_connection_changed(connected: bool):
+func _on_client_connection_changed(_connected: bool):
 	if GSClient.is_client_connected():
 		_hostname.editable = false
 		_port.editable = false
@@ -188,7 +188,7 @@ func _on_stop_all_devices_pressed() -> void:
 	GSClient.stop_all_devices()
 
 
-func _on_device_list_item_clicked(index: int, at_position: Vector2, mouse_button_index: int) -> void:
+func _on_device_list_item_clicked(index: int, _at_position: Vector2, _mouse_button_index: int) -> void:
 	var device = _device_list.get_item_metadata(index) as GSDevice
 	if not device:
 		return

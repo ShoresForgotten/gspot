@@ -14,10 +14,8 @@ func _ready() -> void:
 	_actuator_type.text = actuator_type_string
 	_index.text = str(feature.feature_index)
 	var output_range = feature.outputs[actuator_type_string].value_range
-	var step_count = output_range.range_max - output_range.range_min
 	_scalar.min_value = output_range.range_min
 	_scalar.max_value = output_range.range_max
-	_scalar.step_count = step_count
 
 
 func _on_scalar_value_changed(value: float) -> void:

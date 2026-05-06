@@ -18,11 +18,11 @@ script = ExtResource("2_2jg4r")
 
 [node name="Label" type="Label" parent="." unique_id=783997438]
 layout_mode = 2
-text = "Sensor Type"
+text = "Input Type"
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="SensorType" type="Label" parent="." unique_id=676903050]
+[node name="InputType" type="Label" parent="." unique_id=676903050]
 unique_name_in_owner = true
 layout_mode = 2
 label_settings = ExtResource("3_ljh3s")
@@ -57,7 +57,7 @@ layout_mode = 2
 label_settings = ExtResource("3_ljh3s")
 vertical_alignment = 1
 
-[node name="ReadSensor" type="Button" parent="." unique_id=783950851]
+[node name="ReadInput" type="Button" parent="." unique_id=783950851]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Read Sensor"
@@ -74,6 +74,6 @@ visible = false
 layout_mode = 2
 text = "Unsubscribe"
 
-[connection signal="pressed" from="ReadSensor" to="." method="_on_read_sensor_pressed"]
+[connection signal="pressed" from="ReadInput" to="." method="_on_read_input_pressed"]
 [connection signal="pressed" from="Subscribe" to="." method="_on_subscribe_pressed"]
 [connection signal="pressed" from="Unsubscribe" to="." method="_on_unsubscribe_pressed"]

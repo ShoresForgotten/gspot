@@ -7,12 +7,14 @@ extends RefCounted
 ##
 ## @tutorial(Spec Reference): https://buttplug.io/docs/spec/device_information
 
-## Emitted when a sensor value has been read after calling [method read_sensor].
+## Emitted when a sensor value has been read after calling [method read_sensor]. Don't request a
+## new input read before receiving a previously requested value, as no signal will be emitted when
+## the old request is fulfilled.
 ## [br][br]
 ## [param feature] is the sensor feature.
 ## [br]
 ## [param data] is the sensor data.
-signal sensor_value_read(feature: GSFeature, data: PackedInt32Array)
+signal input_value_read(feature: GSFeature, data: Dictionary)
 
 ## The [GSDevice] that owns this feature.
 var device: GSDevice
@@ -25,25 +27,23 @@ var outputs: Dictionary[String, GSOutput] = {}
 ## The inputs (sensors) belonging to the feature
 var inputs: Dictionary[String, GSInput] = {}
 
-var _read_sensor_id: int = -1
+var _read_input_id: int = -1
 
 func _init() -> void:
-	GSClient.client_sensor_reading.connect(
+	GSClient.client_input_reading.connect(
 		func(
 			id: int, 
 			device_index: int, 
 			feature_index: int, 
-			output_type: String, 
-			data: PackedInt32Array
+			data: Dictionary
 		):
 			if(
-				_read_sensor_id == id
+				_read_input_id == id
 				and device_index == device.device_index
 				and feature_index == self.feature_index
-				and outputs.has(output_type)
 			):
-				sensor_value_read.emit(self, data)
-				_read_sensor_id = -1
+				input_value_read.emit(self, data)
+				_read_input_id = -1
 	)
 
 
@@ -101,11 +101,14 @@ func start(value: float, output_type: String, duration: float = 0.0, clockwise: 
 func stop() -> void:
 	GSClient.stop_feature(self)
 
-
-## Requests the feature value if it has a sensor type. This does nothing for actuator features. The 
-## value will be returned via [signal sensor_value_read].
-func read_sensor() -> void:
-	if inputs.is_empty():
+## Requests the feature value if it has the requested input type. The value will be returned via 
+## [signal input_value_read]. This can be used to read the battery or rssi level with
+## [const GSInputType.BATTERY] and [const GSInputType.RSSI] respectively.
+## [br][br]
+## [param input_type] is the type of input to read, if the feature has it. 
+func read_input(input_type: String = "") -> void:
+	if inputs.is_empty() or input_type != "" and not inputs.has(input_type):
 		return
-	# This doesn't account for multiple inputs on a feature
-	_read_sensor_id = GSClient.read_sensor(device.device_index, feature_index, inputs.keys().front())
+	if input_type == "":
+		input_type = inputs.keys().front()
+	_read_input_id = GSClient.read_input(device.device_index, feature_index, input_type)

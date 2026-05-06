@@ -178,7 +178,7 @@ func play(
 	active.intensity = clampf(intensity, 0.0, 1.0)
 	# If no sample rate is provided use the device value.
 	if sample_rate <= 0:
-		sample_rate = feature.device.get_message_rate()
+		sample_rate = float(feature.device.device_message_timing_gap) / 1000.0
 	active.sample_rate = sample_rate
 	active.loop = loop
 	active.linear_duration = linear_duration

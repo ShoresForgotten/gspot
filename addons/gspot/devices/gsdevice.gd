@@ -37,6 +37,7 @@ static func deserialize(data: Dictionary) -> GSDevice:
 		for feature_dict: Dictionary in features.values():
 			var feature = GSFeature.deserialize(feature_dict)
 			feature.device = device
+			
 			device.features.append(feature)
 	return device
 
@@ -48,33 +49,12 @@ func get_display_name() -> String:
 	return device_name
 
 
-## Returns [code]true[/code] if the given output type is present.
-func has_output(output_type: String) -> bool:
-	return features.any(func(f: GSFeature): return f.outputs.keys().has(output_type))
-
-
-## Returns a list of all features for the given feature command (ScalarCmd, RotateCmd, LinearCmd, etc.).
-func get_features_by_command(feature_command: String) -> Array[GSFeature]:
-	var list: Array[GSFeature] = []
-	list.assign(features.filter(func(f: GSFeature): return f.feature_command == feature_command))
-	return list
-
-
-## Gets the first feature for the given feature command (ScalarCmd, RotateCmd, LinearCmd, etc.). 
-## Returns [code]null[/code] if no feature of that type is available.
-func get_feature(feature_command: String) -> GSFeature:
-	var features: Array[GSFeature] = get_features_by_command(feature_command)
-	if features.size() > 0:
-		return features.front()
-	return null
-
-
 ## Returns [code]true[/code] if the given output type (Vibrate, Rotate, Position, etc.) is 
 ## present. 
 ## [br][br]
 ## See [GSOutputType] for a list of available types.
 func has_output_type(output_type: String) -> bool:
-	return features.any(func(f: GSFeature): return f.outputs.has(output_type))
+	return features.any(func(f: GSFeature): return f.outputs.keys().has(output_type))
 
 
 ## Returns a list of all features for the given output type. 
@@ -86,12 +66,42 @@ func get_features_by_output_type(output_type: String) -> Array[GSFeature]:
 	return list
 
 
-## Gets the first feature for the given actuator type. Returns [code]null[/code] if no feature of 
+## Gets the first feature for the given output type. Returns [code]null[/code] if no feature of 
 ## that type is available. 
 ## [br][br]
-## See [GSActuatorType] for a list of available types.
+## See [GSOutputType] for a list of available types.
 func get_feature_by_output_type(output_type: String) -> GSFeature:
 	var features: Array[GSFeature] = get_features_by_output_type(output_type)
+	if features.size() > 0:
+		return features.front()
+	return null
+
+
+## Returns [code]true[/code] if the given input type (Battery, RSSI, Pressure, etc.) is 
+## present. 
+## [br][br]
+## See [GSInputType] for a list of available types.
+func has_input_type(input_type: String) -> bool:
+	return features.any((func(f: GSFeature): return f.inputs.keys().has(input_type)))
+
+
+## Returns a list of all features for the given input type. 
+## [br][br]
+## See [GSInputType] for a list of available types.
+func get_features_by_input_type(input_type: String) -> Array[GSFeature]:
+	var list: Array[GSFeature] = []
+	list.assign(features.filter(func(f: GSFeature): return f.inputs.keys().has(input_type)))
+	return list
+
+
+## Gets the first feature for the given input type. Returns [code]null[/code] if no feature of 
+## that type is available. 
+## [br][br]
+## See [GSInputType] for a list of available types. Two types of note are 
+## [const GSInputType.BATTERY] and [const GSInputType.RSSI] for battery level and bluetooth signal
+## strength respectively.
+func get_feature_by_input_type(input_type: String) -> GSFeature:
+	var features: Array[GSFeature] = get_features_by_input_type(input_type)
 	if features.size() > 0:
 		return features.front()
 	return null
@@ -171,7 +181,6 @@ func position(duration: float, position: float) -> GSFeature:
 		return null
 	await GSClient.send_feature(feature, GSOutputType.HW_POSITION_WITH_DURATION, clampf(position, 0.0, 1.0), duration)
 	return feature
-
 
 ## Stops all active features on this device.
 func stop() -> void:
