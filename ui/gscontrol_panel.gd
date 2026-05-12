@@ -178,7 +178,7 @@ func _on_stop_scan_pressed() -> void:
 
 
 func _on_stop_device_pressed() -> void:
-	var device = get_selected_device()
+	var device := get_selected_device()
 	if not device:
 		return
 	GSClient.stop_device(device.device_index)
@@ -189,7 +189,7 @@ func _on_stop_all_devices_pressed() -> void:
 
 
 func _on_device_list_item_clicked(index: int, _at_position: Vector2, _mouse_button_index: int) -> void:
-	var device = _device_list.get_item_metadata(index) as GSDevice
+	var device := _device_list.get_item_metadata(index) as GSDevice
 	if not device:
 		return
 	_add_scalars(device)
