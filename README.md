@@ -43,7 +43,7 @@ GSClient.loge("Error log message.")
 ```
 
 ## Project Settings
-Project settings are now available to configure how the GSClient identifies itself to buttplug.io servers, and if raw device commands are available.
+Project settings are now available to configure how the GSClient identifies itself to buttplug.io servers.
 * ```gspot/client/client_name``` - The client name. Defaults to GSClient.
 * ```gspot/client/client_version``` - The client version. Currently defaults to 3.0.0.
 
@@ -67,7 +67,7 @@ A [simple pattern editor](https://github.com/deadpixelsociety/gspot/blob/main/ui
 Example pattern usage:
 ```gdscript
 var device: GSDevice = GSClient.get_device_by_name("Lovense Calor")
-var feature: GSFeature = device.get_feature_by_command_type(GSOutputType.VIBRATE)
+var feature: GSFeature = device.get_feature_by_output_type(GSOutputType.VIBRATE)
 
 var patterns: GSPatterns = GSClient.ext(GSPatterns.NAME)
 
